@@ -15,8 +15,6 @@ class Card:
         print("\tElement: ", self.element)
         print("\tEffect: ", self.desc)
 
-    def play(self):
-        print("You play: ", self.name)
 
     def processEffect(self, encounter):
         if self.effect.name == "sdamage":
@@ -44,6 +42,7 @@ class DmgCard(Card):
         print("\tEffect: ", self.desc)
         print("\tDamage: ", self.damage)
 
+
 class Effect:
 
     def __init__(self,name,  target, type, tags):
@@ -53,9 +52,8 @@ class Effect:
         self.tags = tags  # modifiers such as piercing, holy, etc
 
     def sdamage(self, card):  # deals simple damage with normal armor take into account.
+        print(card.target.name, " receives ", card.damage)
         card.target.armorharm(card.damage)
-        print("You deal ", card.damage, " damage to ", card.target.name)
-
 
 
 class Deck:
@@ -77,15 +75,13 @@ class Deck:
         new_contents.append(card)
         self.contents = new_contents
 
-    def topdeck(self):
-        return self.contents[len(self.contents)-1]
-
     def shuffle(self):
         random.shuffle(self.contents)
 
     def draw(self):
-        print("You draw: ", self.topdeck().name)
-        return self.contents.pop()
+        topdeck = self.contents.pop()
+        print("You draw: ", topdeck.name)
+        return topdeck
 
     def smartdraw(self, cardname):
         empty = Effect("empty", "user", "null", [])
@@ -97,11 +93,14 @@ class Deck:
         print("You draw: ", mycard.name)
         return mycard
 
+
 class Hand:
+
     def __init__(self, contents):
         self.contents = contents
 
     def draw(self, Deck, amount):
+
         for i in range(amount):
             self.contents.append(Deck.draw())
 
@@ -119,14 +118,12 @@ class Hand:
         card.processEffect(encounter)
         self.movecardtodeck(card, encounter.player.hand, encounter.player.discard)
 
+
     def movecardtodeck(self,card, deckfrom , deckto):
         deckto.contents.append(card)
         for i in deckfrom.contents:
             if i == card:
                 deckfrom.contents.remove(card)
-
-
-
 
 
 class Character:
@@ -165,7 +162,20 @@ class Character:
     def die(self):
         exit("You died, thanks for playing!")
 
+    def refilldeck(self):
+        if len(self.deck.contents) == 0:
+            print("Discard shuffled into draw.")
+            random.shuffle(self.discard.contents)
+            self.deck.contents = self.discard.contents
+            self.discard.contents.clear()
+
+
+
+
+
+
 class Player(Character):
+
     def __init__(self, name, health, deck):
         self.name = name
         self.maxhealth = health
@@ -197,11 +207,11 @@ class Encounter:  # Represents a room with the player, and enemies in it.
             print("-----------------------------------\n\n")
             return 1
 
-
-
     def checkenemies(self):
         for enemy in self.enemies:
             print(enemy.position, ": ", self.enemies[enemy.position-1].name, "(",
                   self.enemies[enemy.position-1].currhealth,"/", self.enemies[enemy.position-1].maxhealth, ")")
 
             print()
+    def botmove(self, enemy):
+        enemy.deck.draw()
