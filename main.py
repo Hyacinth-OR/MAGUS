@@ -4,36 +4,46 @@ def initialize():
     doac = Deck("All Cards", [])
 
     #  Card Effect Initializer
-    sdamage = Effect("sdamage", "target", "damage", [])
+    sdamage = Effect("sdamage", "Target", "damage", [])
     empty = Effect("empty","user","null",[])
 
     # Card Initializer
-    fireball = DmgCard("Fireball", "Pyromancy", "Area", sdamage, 5)
+    fireball = DmgCard("Fireball", "Pyromancy", "Area", sdamage, 5, 5)
     doac.add_card(fireball)
-    molten_beam = Card("Molten Beam", "Pyromancy", "Target", empty)
+
+    molten_beam = DmgCard("Molten Beam", "Pyromancy", "Target", sdamage, 10, 5)
     doac.add_card(molten_beam)
 
-    gun = DmgCard("Gun", "Artificer", "Deals damage.", sdamage, 15)
+    gun = DmgCard("Gun", "Artificer", "Deals damage.", sdamage, 15, 5)
     doac.add_card(gun)
 
-    throw_rock = DmgCard("Throw Rock", "Basic", "Target", sdamage, 5)
+    throw_rock = DmgCard("Throw Rock", "Basic", "Target", sdamage, 5, 5)
     doac.add_card(throw_rock)
+
+
+
     return doac
+
 
 def encounter(player):
     hand = player.hand
     enemy = Character("Target Dummy", 25, [], 1)
-    fight = Encounter(player, [enemy])
+    enemy2 = Character("Fragile Target Dummy", 5, [], 2)
+    enemylist = []
+    enemylist.append(enemy)
+    enemylist.append(enemy2)
+    fight = Encounter(player, enemylist)
     deck = player.deck
     deck.shuffle()
     hand.smartdraw(deck, "Gun")
-
+    player.mana = 10
     while(player.currhealth > 0):
         player.refilldeck()
         print("Cards in deck: ", len(player.deck.contents))
         fight.corpseclear()
         if fight.victorycheck() == 1:
             main()
+        print("Mana: ",player.mana, "\t Health: ", player.currhealth)
         print("1. Play Card\n2. Check Hand\n3. Check Enemies\n4. Check Discard\n5. End Turn")
         act = input()
         if act == "0":
@@ -49,18 +59,24 @@ def encounter(player):
 
                 hand.draw(deck, 1)
 
-        elif act == "2":
+        elif act == "2": # Check Hand
+            print("Your hand:")
             hand.show_hand()
             print()
-        elif act == "3":
+        elif act == "3": # Look at enemies
             fight.checkenemies()
-        elif act == "4":
+        elif act == "4": # See what you've discarded
             player.discard.show_deck()
-        elif act == "5":
+        elif act == "5": # End Turn
             player.refilldeck()
             if(len(deck.contents)) > 0:
                 hand.draw(deck, 1)
-
+            player.mana += 10
+            if player.mana >= 10:
+                player.mana = 10
+            fight.botmove(enemy)
+    print("You died, better luck next time!")
+    main()
 
 
 
@@ -70,7 +86,7 @@ def main():
     print("Initializing...")
     all_cards = initialize()
     demo_deck = Deck("Deck",[all_cards.contents[2],all_cards.contents[3]])
-    player = Player("Player", 100,demo_deck)
+    player = Player("Player", 100, demo_deck)
 
     print("Initialized.")
     print("Welcome to Magus!")
@@ -89,6 +105,8 @@ def main():
                     all_cards.show_deck_verbose()
                 elif verbose == "2":
                     all_cards.show_deck()
+                else:
+                    main()
 
         if menuchoice == "2":
             print("Welcome to the testing environment!")

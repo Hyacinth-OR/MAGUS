@@ -2,12 +2,13 @@ import random
 
 class Card:
 
-    def __init__(self, name, element, desc, effect):
+    def __init__(self, name, element, desc, effect,cost):
         self.name = name  # The name of the card
         self.element = element  # The element(s) associated with it
         self.effect = effect  # What it does when activated.
         self.desc = desc
         self.target = self.effect.target
+        self.cost = cost
 
     def info(self):
         print(self.name)
@@ -15,24 +16,30 @@ class Card:
         print("\tElement: ", self.element)
         print("\tEffect: ", self.desc)
 
-
     def processEffect(self, encounter):
         if self.effect.name == "sdamage":
-            if self.target == "target":
+            if self.target == "Target":
                 encounter.checkenemies()
                 enemy = int(input())
                 self.target = encounter.enemies[enemy-1]
                 self.effect.sdamage(self)
+            if self.target == "Area":
+                for enemy in encounter.enemies:
+                    self.target = enemy
+                    self.effect.sdamage(self)
+
+
 
 
 class DmgCard(Card):
 
-    def __init__(self, name, element, desc, effect, damage):
+    def __init__(self, name, element, desc, effect, damage, cost):
         self.name = name  # The name of the card
         self.element = element  # The element(s) associated with it
         self.effect = effect  # What it does when activated.
         self.desc = desc
         self.target = self.effect.target
+        self.cost = cost
         self.damage = damage
 
     def info(self):
@@ -41,6 +48,7 @@ class DmgCard(Card):
         print("\tElement: ", self.element)
         print("\tEffect: ", self.desc)
         print("\tDamage: ", self.damage)
+        print("\tMana Cost: ", self.cost)
 
 
 class Effect:
@@ -52,7 +60,7 @@ class Effect:
         self.tags = tags  # modifiers such as piercing, holy, etc
 
     def sdamage(self, card):  # deals simple damage with normal armor take into account.
-        print(card.target.name, " receives ", card.damage)
+        print(card.target.name, " receives ", card.damage, " damage.")
         card.target.armorharm(card.damage)
 
 
@@ -63,6 +71,7 @@ class Deck:
         self.contents = contents
 
     def show_deck(self):
+        print("Contents of ", self.name, ":")
         for card in self.contents:
             print(card.name)
 
@@ -85,7 +94,7 @@ class Deck:
 
     def smartdraw(self, cardname):
         empty = Effect("empty", "user", "null", [])
-        mycard = Card("DEBUG", "YOU'RE NOT SUPPOSED TO SEE THIS", "Area", empty)
+        mycard = Card("DEBUG", "YOU'RE NOT SUPPOSED TO SEE THIS", "Area", empty, 0)
         for card in self.contents:
             if cardname == card.name:
                 mycard = card
@@ -114,9 +123,14 @@ class Hand:
             i += 1
 
     def play(self, card, encounter):
-        print("You play: ", card.name)
-        card.processEffect(encounter)
-        self.movecardtodeck(card, encounter.player.hand, encounter.player.discard)
+        if encounter.player.mana < card.cost:
+            print("You don't have enough mana to play that card!")
+
+        else:
+            print("You play: ", card.name)
+            encounter.player.modMana(card.cost)
+            card.processEffect(encounter)
+            self.movecardtodeck(card, encounter.player.hand, encounter.player.discard)
 
 
     def movecardtodeck(self,card, deckfrom , deckto):
@@ -137,6 +151,7 @@ class Character:
         self.armor = 0
         self.player = 0
         self.position = position
+        self.mana = 0
         self.discard = Deck("Discard", [])
         self.astral = Deck("Astral Plane", [])
 
@@ -151,16 +166,15 @@ class Character:
 
     def takeharm(self, amount):  # The amount of damage a character takes after all defense calculations
         self.currhealth = self.currhealth - amount
-        self.mortality_check()
 
     def mortality_check(self):
         if self.currhealth <= 0:
             print(self.name, " dies.")
             if self.player == 1:
-                self.die()
+                return 1
 
-    def die(self):
-        exit("You died, thanks for playing!")
+    def modMana(self, modifier):
+        self.mana = self.mana - modifier;
 
     def refilldeck(self):
         if len(self.deck.contents) == 0:
@@ -182,6 +196,7 @@ class Player(Character):
         self.currhealth = health
         self.deck = deck
         self.hand = Hand([])
+        self.mana = 0;
         self.armor = 0
         self.player = 1
         self.position = 0
@@ -193,7 +208,7 @@ class Encounter:  # Represents a room with the player, and enemies in it.
 
     def __init__(self, player, enemies):
         self.player = player
-        self.enemies = enemies # list of enemies in encounter
+        self.enemies = enemies  # list of enemies in encounter
 
     def corpseclear(self):  # removes all dead enemies from the board at the top of the turn.
         for enemy in self.enemies:
@@ -214,4 +229,5 @@ class Encounter:  # Represents a room with the player, and enemies in it.
 
             print()
     def botmove(self, enemy):
-        enemy.deck.draw()
+        print(enemy.name, " strikes you with its dummy arms!")
+        self.player.takeharm(20)
